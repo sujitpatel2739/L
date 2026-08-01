@@ -1,0 +1,87 @@
+{
+    "hotkeys": {
+        "capture": "ctrl+alt+space",
+        "capture_area": "ctrl+alt+p",
+        "quit": "ctrl+alt+q",
+        "chat_focus": "ctrl+alt+c",
+        "chat_input": "ctrl+alt+i",
+        "chat_close": "ctrl+alt+x",
+        "chat_new": "ctrl+alt+n"
+    },
+    "capture": {
+        "monitor": 1,
+        "crop": {
+            "top_cm": 3,
+            "bottom_cm": 3
+        }
+    },
+    "ocr": {
+        "engine": "rapidocr"
+    },
+    "llm": {
+        "backend": "api",
+        "local": {
+            "model_key": "qwen2.5-coder-1.5b",
+            "n_ctx": 4096,
+            "n_gpu_layers": -1,
+            "n_threads": 16,
+            "temperature": 0.2,
+            "max_tokens": 1000
+        },
+        "api": {
+            "base_url": "https://openrouter.ai/api/v1/chat/completions",
+            "model": "nvidia/nemotron-3-ultra-550b-a55b:free",
+            "api_key_env": "OPENROUTER_API_KEY",
+            "api_key": "",
+            "temperature": 0.2,
+            "max_tokens": 1000
+        }
+    },
+    "overlay": {
+        "opacity": 1.0,
+        "font_size": 13,
+        "font_family": "Microsoft JhengHei",
+        "padding": 20,
+        "text_color": "#FFFFFF",
+        "background_color": "#000000",
+        "background_alpha": 0.35,
+        "width_percent": 0.25,
+        "position": "center"
+    },
+    "chat": {
+        "width_percent": 0.3,
+        "height_percent": 0.55,
+        "margin_px": 24,
+        "font_size": 13,
+        "font_family": "Microsoft JhengHei",
+        "text_color": "#F2F2F2",
+        "background_color": "#101014",
+        "background_alpha": 1.0,
+        "user_accent_color": "#0019ff",
+        "assistant_accent_color": "#585858",
+        "input_height_px": 44
+    },
+    "app": {
+        "theme": "dark",
+        "accent_color": "#0051ff",
+        "start_with_windows": false,
+        "check_for_updates": true
+    },
+    "personalization": {
+        "username": "Jason Apex",
+        "about_you": "",
+        "system_prompt": "",
+        "things_to_avoid": ""
+    },
+    "billing": {
+        "credit_limit_per_prompt": 5.0
+    },
+    "prompt": {
+        "system": "You are a helpful assistant. Give direct asnwers, no buzzwords, no jargons, no filler words. Be concise and to the point."
+    },
+    "logging": {
+        "enabled": true,
+        "directory": "logs",
+        "level": "INFO"
+    }
+}

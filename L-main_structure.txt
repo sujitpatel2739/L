@@ -1,0 +1,32 @@
+﻿L-main
+|-- common
+|   |-- __init__.py
+|   |-- config.py
+|   |-- utils.py
+|   \-- win_native.py
+|-- core
+|   |-- __init__.py
+|   |-- capture.py
+|   |-- chat_history_db.py
+|   |-- chat_models.py
+|   |-- llm.py
+|   |-- model_download_worker.py
+|   |-- model_manager.py
+|   |-- ocr.py
+|   \-- worker.py
+|-- logs
+|-- ui
+|   |-- __init__.py
+|   |-- chat_controller.py
+|   |-- chat_overlay.py
+|   |-- chat_worker.py
+|   |-- hotkeys.py
+|   |-- overlay.py
+|   |-- settings_window.py
+|   \-- tray_icon.py
+|-- .env
+|-- L-main_structure.txt
+|-- main.py
+|-- readme.md
+|-- requirements.txt
+\-- settings.json
