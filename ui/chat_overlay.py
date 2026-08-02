@@ -22,7 +22,7 @@ from __future__ import annotations
 
 from typing import Dict, List, Optional
 
-from PySide6.QtCore import Qt, QEvent, QTimer, Signal
+from PySide6.QtCore import Qt, QEvent, QPoint, QTimer, Signal
 from PySide6.QtWidgets import (
     QApplication,
     QFrame,
@@ -239,6 +239,8 @@ class ChatOverlayWindow(QWidget):
         self._bubbles: Dict[str, MessageBubble] = {}
         self._order: List[str] = []
         self._near_bottom = True
+        self._drag_start_pos: Optional[QPoint] = None
+        self._drag_start_geom = None
 
         # Whether the window is currently allowed to take real OS
         # keyboard focus. False = permanently non-activating (default,
@@ -326,8 +328,12 @@ class ChatOverlayWindow(QWidget):
         )
         self.line_edit.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         self.line_edit.returnPressed.connect(self._on_send_clicked)
+
+        self.input_row = input_row
         self.line_edit.installEventFilter(self)
         input_layout.addWidget(self.line_edit, 1)
+
+        self.input_row.installEventFilter(self)
 
         self.send_button = QPushButton("Send")
         self.send_button.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -346,15 +352,7 @@ class ChatOverlayWindow(QWidget):
             | Qt.WindowType.WindowStaysOnTopHint
         )
 
-        screen = self.screen().availableGeometry()
-
-        width = int(screen.width() * self.cfg.width_percent)
-        height = int(screen.height() * self.cfg.height_percent)
-
-        x = screen.right() - width - self.cfg.margin_px
-        y = screen.top() + self.cfg.margin_px
-
-        self.setGeometry(x, y, width, height)
+        self._update_window_geometry()
 
         self.hide()
         self.winId()  # force native handle creation
@@ -363,7 +361,6 @@ class ChatOverlayWindow(QWidget):
         QApplication.instance().installEventFilter(self)
 
     def _apply_native_flags(self, activatable: bool) -> None:
-
         hwnd = int(self.winId())
 
         if activatable:
@@ -374,6 +371,20 @@ class ChatOverlayWindow(QWidget):
         win_native.exclude_from_capture(hwnd)
 
         self._activatable = activatable
+
+    # --------------------------------------------------------
+
+    def _update_window_geometry(self) -> None:
+
+        screen = self.screen().availableGeometry()
+
+        width = int(screen.width() * self.cfg.width_percent)
+        height = int(screen.height() * self.cfg.height_percent)
+
+        x = screen.right() - width - self.cfg.margin_px
+        y = screen.top() + self.cfg.margin_px
+
+        self.setGeometry(x, y, width, height)
 
     # --------------------------------------------------------
 
@@ -389,11 +400,31 @@ class ChatOverlayWindow(QWidget):
 
     def eventFilter(self, obj, event):
 
-        if obj is self.line_edit:
+        if obj in (self.line_edit, getattr(self, 'input_row', None)):
             if event.type() == QEvent.Type.MouseButtonPress:
+                self._drag_start_pos = event.globalPosition().toPoint()
+                self._drag_start_geom = self.geometry()
                 self.input_focus_requested.emit()
                 return False
 
+            if event.type() == QEvent.Type.MouseMove and self._drag_start_pos is not None:
+                current_pos = event.globalPosition().toPoint()
+                delta = current_pos - self._drag_start_pos
+                new_top_left = self._drag_start_geom.topLeft() + delta
+                screen = self.screen().availableGeometry()
+                width = self.width()
+                height = self.height()
+                x = max(screen.left(), min(new_top_left.x(), screen.right() - width))
+                y = max(screen.top(), min(new_top_left.y(), screen.bottom() - height))
+                self.move(x, y)
+                return False
+
+            if event.type() == QEvent.Type.MouseButtonRelease:
+                self._drag_start_pos = None
+                self._drag_start_geom = None
+                return False
+
+        if obj is self.line_edit:
             if event.type() == QEvent.Type.KeyPress:
                 if event.key() == Qt.Key.Key_Escape:
                     self.escape_pressed.emit()
@@ -583,6 +614,8 @@ class ChatOverlayWindow(QWidget):
         self.line_edit.setStyleSheet(
             f"font-family: '{self.cfg.font_family}'; font-size: {self.cfg.font_size}px;"
         )
+
+        self._update_window_geometry()
 
         for bubble in self._bubbles.values():
             bubble.apply_theme(self.cfg)

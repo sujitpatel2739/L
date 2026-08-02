@@ -312,6 +312,13 @@ class ScreenAssistant(QObject):
             self.settings_callbacks,
         )
 
+        self.chat_controller.conversation_saved.connect(
+            self.settings_window.working_history_tab.refresh
+        )
+        self.chat_controller.conversation_saved.connect(
+            self.settings_window.dashboard_tab.refresh_overview
+        )
+
         self.tray = TrayIcon(self.settings.app.accent_color)
         self.tray.open_settings_requested.connect(
             lambda: self.settings_window.open_to(0)

@@ -1,10 +1,25 @@
 ﻿L-main
 |-- common
+|   |-- __pycache__
+|   |   |-- __init__.cpython-314.pyc
+|   |   |-- config.cpython-314.pyc
+|   |   |-- utils.cpython-314.pyc
+|   |   \-- win_native.cpython-314.pyc
 |   |-- __init__.py
 |   |-- config.py
 |   |-- utils.py
 |   \-- win_native.py
 |-- core
+|   |-- __pycache__
+|   |   |-- __init__.cpython-314.pyc
+|   |   |-- capture.cpython-314.pyc
+|   |   |-- chat_history_db.cpython-314.pyc
+|   |   |-- chat_models.cpython-314.pyc
+|   |   |-- llm.cpython-314.pyc
+|   |   |-- model_download_worker.cpython-314.pyc
+|   |   |-- model_manager.cpython-314.pyc
+|   |   |-- ocr.cpython-314.pyc
+|   |   \-- worker.cpython-314.pyc
 |   |-- __init__.py
 |   |-- capture.py
 |   |-- chat_history_db.py
@@ -16,6 +31,15 @@
 |   \-- worker.py
 |-- logs
 |-- ui
+|   |-- __pycache__
+|   |   |-- __init__.cpython-314.pyc
+|   |   |-- chat_controller.cpython-314.pyc
+|   |   |-- chat_overlay.cpython-314.pyc
+|   |   |-- chat_worker.cpython-314.pyc
+|   |   |-- hotkeys.cpython-314.pyc
+|   |   |-- overlay.cpython-314.pyc
+|   |   |-- settings_window.cpython-314.pyc
+|   |   \-- tray_icon.cpython-314.pyc
 |   |-- __init__.py
 |   |-- chat_controller.py
 |   |-- chat_overlay.py
@@ -25,7 +49,6 @@
 |   |-- settings_window.py
 |   \-- tray_icon.py
 |-- .env
-|-- L-main_structure.txt
 |-- main.py
 |-- readme.md
 |-- requirements.txt

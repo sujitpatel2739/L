@@ -129,6 +129,7 @@ class Overlay(QWidget):
         self.width_percent = overlay_cfg.width_percent
 
         self.setWindowOpacity(self.opacity)
+        self._update_window_geometry()
         self.update()
 
     def _configure_native_window(self):
@@ -192,10 +193,7 @@ class Overlay(QWidget):
         )
 
         self.setWindowOpacity(self.opacity)
-
-        screen = self.screen().availableGeometry()
-
-        self.setGeometry(screen)
+        self._update_window_geometry()
 
         self.show()
 
@@ -204,6 +202,33 @@ class Overlay(QWidget):
         self._configure_native_window()
 
         self.hide()
+
+    # --------------------------------------------------
+
+    def _desktop_geometry(self) -> QRect:
+        rect = QRect()
+        app = QApplication.instance()
+
+        if app is None:
+            return QRect(0, 0, 1920, 1080)
+
+        for screen in app.screens():
+            rect = rect.united(screen.geometry())
+
+        return rect
+
+    # --------------------------------------------------
+
+    def _update_window_geometry(self) -> None:
+        screen = self._desktop_geometry()
+
+        width = int(screen.width() * self.width_percent)
+        height = self.font_size * 12 + self.padding * 2
+
+        x = screen.right() - width - 32
+        y = screen.top() + 32
+
+        self.setGeometry(x, y, width, height)
 
     # --------------------------------------------------
 
@@ -406,8 +431,13 @@ class SelectionOverlay(QWidget):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
 
-        overlay_color = QColor(0, 0, 0, 120)
-        painter.fillRect(self.rect(), overlay_color)
+        background_color = QColor(
+            self.background_color.red(),
+            self.background_color.green(),
+            self.background_color.blue(),
+            int(self.background_alpha * 255),
+        )
+        painter.fillRect(self.rect(), background_color)
 
         rect = QRect(self._start, self._end).normalized()
 

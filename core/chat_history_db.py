@@ -227,6 +227,12 @@ class ChatHistoryDB:
         )
         self._conn.commit()
 
+    def delete_all_conversations(self) -> None:
+
+        self._conn.execute("DELETE FROM messages")
+        self._conn.execute("DELETE FROM conversations")
+        self._conn.commit()
+
     # --------------------------------------------------------
 
     def close(self) -> None:

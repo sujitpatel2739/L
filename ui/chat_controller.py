@@ -41,6 +41,7 @@ class ChatController(QObject):
     # prompt string (see _send_new_message / _confirm_edit below).
     generate_requested = Signal(str, str)
     cancel_requested = Signal(str)
+    conversation_saved = Signal()
 
     def __init__(self, settings, logger, llm_client, history_db: ChatHistoryDB):
         super().__init__()
@@ -131,6 +132,7 @@ class ChatController(QObject):
 
         if not self.conversation.is_empty():
             self.history_db.save_conversation(list(self.conversation.messages))
+            self.conversation_saved.emit()
 
         self.conversation.clear()
         self.overlay.clear_messages()

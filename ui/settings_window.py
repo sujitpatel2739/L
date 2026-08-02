@@ -17,10 +17,12 @@ from __future__ import annotations
 
 import sys
 import time
+from pathlib import Path
 from typing import Callable, Optional
 
 from PySide6.QtCore import QMetaObject, QThread, Qt, Signal, Q_ARG
 from PySide6.QtGui import QColor, QFont, QKeySequence
+from PySide6.QtPrintSupport import QPrinter
 from PySide6.QtWidgets import (
     QCheckBox,
     QColorDialog,
@@ -48,6 +50,7 @@ from PySide6.QtWidgets import (
     QTextEdit,
     QVBoxLayout,
     QWidget,
+    QDialog,
 )
 
 import common.config as config_module
@@ -565,17 +568,8 @@ class WorkingHistoryTab(QWidget):
     def _on_view(self, conversation_id: int) -> None:
 
         messages = self.history_db.get_messages(conversation_id)
-
-        if messages:
-            text = "\n\n".join(f"[{m['role'].upper()}]\n{m['text']}" for m in messages)
-        else:
-            text = "(empty conversation)"
-
-        box = QMessageBox(self)
-        box.setWindowTitle("Conversation")
-        box.setText(text)
-        box.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
-        box.exec()
+        dialog = ConversationViewDialog(self, messages)
+        dialog.exec()
 
     def _on_rename(self, conversation_id: int, current_title: str) -> None:
 
@@ -603,6 +597,66 @@ class WorkingHistoryTab(QWidget):
 # ============================================================
 # Small reusable color-picker button
 # ============================================================
+
+class ConversationViewDialog(QDialog):
+
+    def __init__(self, parent, messages: list):
+        super().__init__(parent)
+
+        self.setWindowTitle("Conversation")
+        self.setModal(True)
+        self.setMinimumSize(720, 520)
+
+        root = QVBoxLayout(self)
+        root.setContentsMargins(16, 16, 16, 16)
+        root.setSpacing(12)
+
+        self.text_editor = QTextEdit()
+        self.text_editor.setReadOnly(True)
+        self.text_editor.setLineWrapMode(QTextEdit.LineWrapMode.WidgetWidth)
+        self.text_editor.setTextInteractionFlags(
+            Qt.TextInteractionFlag.TextSelectableByMouse
+            | Qt.TextInteractionFlag.TextSelectableByKeyboard
+        )
+        self.text_editor.setPlainText(self._render_messages(messages))
+        root.addWidget(self.text_editor, 1)
+
+        buttons_row = QHBoxLayout()
+        self.download_btn = QPushButton("Download PDF")
+        self.download_btn.clicked.connect(self._save_to_pdf)
+        buttons_row.addWidget(self.download_btn)
+        buttons_row.addStretch(1)
+
+        self.close_btn = QPushButton("Close")
+        self.close_btn.clicked.connect(self.accept)
+        buttons_row.addWidget(self.close_btn)
+        root.addLayout(buttons_row)
+
+    def _render_messages(self, messages: list) -> str:
+        return "\n\n".join(
+            f"[{m['role'].upper()}]\n{m['text']}" for m in messages
+        )
+
+    def _save_to_pdf(self) -> None:
+        downloads = Path.home() / "Downloads"
+        downloads.mkdir(parents=True, exist_ok=True)
+
+        path = downloads / f"conversation-{int(time.time())}.pdf"
+
+        try:
+            printer = QPrinter(QPrinter.PrinterMode.HighResolution)
+            printer.setOutputFormat(QPrinter.OutputFormat.PdfFormat)
+            printer.setOutputFileName(str(path))
+            self.text_editor.document().print_(printer)
+
+            QMessageBox.information(
+                self,
+                "Saved",
+                f"Conversation exported to:\n{path}",
+            )
+        except Exception as exc:
+            QMessageBox.critical(self, "Save failed", str(exc))
+
 
 class ColorPickerButton(QPushButton):
 
@@ -1563,6 +1617,8 @@ class PersonalizationTab(QWidget):
 
 class AccountBillingTab(QWidget):
 
+    history_changed = Signal()
+
     def __init__(self, settings, callbacks: SettingsCallbacks, parent=None):
         super().__init__(parent)
 
@@ -1617,6 +1673,17 @@ class AccountBillingTab(QWidget):
 
         root.addWidget(limit_group)
 
+        delete_row = QHBoxLayout()
+        self.delete_all_btn = QPushButton("Delete all Working history")
+        self.delete_all_btn.setStyleSheet(
+            "color: #B00020; border: 1px solid #B00020;"
+        )
+        self.delete_all_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.delete_all_btn.clicked.connect(self._on_delete_all_history)
+        delete_row.addWidget(self.delete_all_btn)
+        delete_row.addStretch(1)
+        root.addLayout(delete_row)
+
         root.addStretch(1)
 
         apply_row = QHBoxLayout()
@@ -1641,6 +1708,26 @@ class AccountBillingTab(QWidget):
         self.callbacks.save_settings()
 
         QMessageBox.information(self, "Saved", "Billing preferences saved.")
+
+    def _on_delete_all_history(self) -> None:
+
+        confirm = QMessageBox.question(
+            self,
+            "Delete all working history",
+            "Delete every saved conversation permanently? This cannot be undone.",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+        )
+
+        if confirm != QMessageBox.StandardButton.Yes:
+            return
+
+        self.callbacks.history_db.delete_all_conversations()
+        self.history_changed.emit()
+        QMessageBox.information(
+            self,
+            "Deleted",
+            "All saved working history has been removed permanently.",
+        )
 
 
 # ============================================================
@@ -1717,6 +1804,8 @@ class SettingsWindow(QMainWindow):
         self.account_tab = AccountBillingTab(settings, callbacks)
         self.hotkeys_tab = HotkeysTab(settings, callbacks)
         self.about_tab = AboutTab()
+
+        self.account_tab.history_changed.connect(self.working_history_tab.refresh)
 
         # Order per product spec. "General" and "Appearance" weren't
         # named in that ordering explicitly -- placed right after

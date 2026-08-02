@@ -6,13 +6,13 @@
         "chat_focus": "ctrl+alt+c",
         "chat_input": "ctrl+alt+i",
         "chat_close": "ctrl+alt+x",
-        "chat_new": "ctrl+alt+n"
+        "chat_new": "ctrl+alt+k"
     },
     "capture": {
         "monitor": 1,
         "crop": {
-            "top_cm": 3,
-            "bottom_cm": 3
+            "top_cm": 3.0,
+            "bottom_cm": 3.0
         }
     },
     "ocr": {
@@ -38,34 +38,34 @@
         }
     },
     "overlay": {
-        "opacity": 1.0,
-        "font_size": 13,
-        "font_family": "Microsoft JhengHei",
+        "opacity": 0.95,
+        "font_size": 14,
+        "font_family": "Arial",
         "padding": 20,
         "text_color": "#FFFFFF",
         "background_color": "#000000",
         "background_alpha": 0.35,
-        "width_percent": 0.25,
+        "width_percent": 0.55,
         "position": "center"
     },
     "chat": {
-        "width_percent": 0.3,
+        "width_percent": 0.5,
         "height_percent": 0.55,
         "margin_px": 24,
-        "font_size": 13,
-        "font_family": "Microsoft JhengHei",
-        "text_color": "#F2F2F2",
-        "background_color": "#101014",
+        "font_size": 14,
+        "font_family": "Arial",
+        "text_color": "#e9f23f",
+        "background_color": "#001183",
         "background_alpha": 1.0,
-        "user_accent_color": "#0019ff",
-        "assistant_accent_color": "#585858",
+        "user_accent_color": "#00ff11",
+        "assistant_accent_color": "#0088ff",
         "input_height_px": 44
     },
     "app": {
         "theme": "dark",
-        "accent_color": "#0051ff",
+        "accent_color": "#ff0062",
         "start_with_windows": false,
-        "check_for_updates": true
+        "check_for_updates": false
     },
     "personalization": {
         "username": "Jason Apex",
@@ -74,7 +74,7 @@
         "things_to_avoid": ""
     },
     "billing": {
-        "credit_limit_per_prompt": 5.0
+        "credit_limit_per_prompt": 1000.0
     },
     "prompt": {
         "system": "You are a helpful assistant. Give direct asnwers, no buzzwords, no jargons, no filler words. Be concise and to the point."
