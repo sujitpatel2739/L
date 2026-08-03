@@ -39,7 +39,7 @@
     },
     "overlay": {
         "opacity": 0.95,
-        "font_size": 14,
+        "font_size": 15,
         "font_family": "Arial",
         "padding": 20,
         "text_color": "#FFFFFF",
@@ -52,18 +52,18 @@
         "width_percent": 0.5,
         "height_percent": 0.55,
         "margin_px": 24,
-        "font_size": 14,
+        "font_size": 15,
         "font_family": "Arial",
         "text_color": "#f2f0ae",
         "background_color": "#001183",
-        "background_alpha": 1,
+        "background_alpha": 0.45,
         "user_accent_color": "#0084ff",
         "assistant_accent_color": "#0088ff",
         "input_height_px": 52
     },
     "app": {
-        "theme": "light",
-        "accent_color": "#ff0062",
+        "theme": "dark",
+        "accent_color": "#00ffc8",
         "start_with_windows": false,
         "check_for_updates": false
     },

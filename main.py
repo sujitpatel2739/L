@@ -19,7 +19,8 @@ from common.config import load_settings, save_settings, validate
 from ui.hotkeys import HotkeyManager
 from core.llm import create_llm_client
 from core.model_manager import ModelManager
-from ui.overlay import Overlay, SelectionOverlay
+from ui.overlay import Overlay
+from ui.selection_overlay import SelectionOverlay
 from ui.settings_window import SettingsCallbacks, SettingsWindow
 from ui.tray_icon import TrayIcon
 from common.utils import setup_logger
