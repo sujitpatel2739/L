@@ -86,16 +86,16 @@ def _panel_qss(bg_hex: str, bg_alpha: float, text_hex: str) -> str:
             background-color: rgba(255, 80, 80, 55);
         }}
         QPushButton#sendButton {{
-            background-color: rgba({r}, {g}, {b}, 24);
+            background-color: {text_hex};
             color: rgba({r}, {g}, {b}, 255);
         }}
         QPushButton#sendButton:hover {{
-            background-color: rgba({r}, {g}, {b}, 40);
-            opacity: 0.95;
+            background-color: {text_hex};
+            opacity: 0.9;
         }}
         QLineEdit {{
-            background-color: rgba({r}, {g}, {b}, 30);
-            border: 1.5px solid rgba({r}, {g}, {b}, 30);
+            background-color: rgba(255, 255, 255, 16);
+            border: 1.5px solid transparent;
             border-radius: 18px;
             padding: 8px 16px;
             color: {text_hex};
@@ -321,11 +321,6 @@ class ChatOverlayWindow(QWidget):
         self._near_bottom = True
         self._drag_start_pos: Optional[QPoint] = None
         self._drag_start_geom = None
-        self._resize_start_pos: Optional[QPoint] = None
-        self._resize_start_geom = None
-        self._resizing = False
-        self._resize_direction: Optional[str] = None
-        self._resize_margin = 10
 
         # Whether the window is currently allowed to take real OS
         # keyboard focus. False = permanently non-activating (default,
@@ -401,7 +396,7 @@ class ChatOverlayWindow(QWidget):
         # ---- input row, flat-attached to the bottom edge ----
         divider = QFrame()
         divider.setFixedHeight(1)
-        divider.setStyleSheet(f"background-color: rgba(255, 255, 255, 18); border: none;")
+        divider.setStyleSheet("background-color: rgba(255, 255, 255, 18); border: none;")
         root.addWidget(divider)
 
         input_row = QWidget()
@@ -442,7 +437,6 @@ class ChatOverlayWindow(QWidget):
             | Qt.WindowType.WindowStaysOnTopHint
         )
 
-        self.setMouseTracking(True)
         self._update_window_geometry()
 
         self.hide()
@@ -530,76 +524,8 @@ class ChatOverlayWindow(QWidget):
         return super().eventFilter(obj, event)
 
     def mousePressEvent(self, event):
-        if event.button() == Qt.MouseButton.LeftButton:
-            region = self._resize_region(event.pos())
-            if region is not None:
-                self._resizing = True
-                self._resize_direction = region
-                self._resize_start_pos = event.globalPosition().toPoint()
-                self._resize_start_geom = self.geometry()
-                event.accept()
-                return
-
         self.input_focus_requested.emit()
         super().mousePressEvent(event)
-
-    def mouseMoveEvent(self, event):
-        if self._resizing and self._resize_start_pos is not None and self._resize_start_geom is not None:
-            current_pos = event.globalPosition().toPoint()
-            delta = current_pos - self._resize_start_pos
-            geom = self._resize_start_geom
-            width = geom.width()
-            height = geom.height()
-            x = geom.x()
-            y = geom.y()
-
-            if self._resize_direction in ("right", "bottom-right"):
-                width = max(320, geom.width() + delta.x())
-            if self._resize_direction in ("bottom", "bottom-right"):
-                height = max(260, geom.height() + delta.y())
-
-            self.setGeometry(x, y, width, height)
-            return
-
-        cursor = self._resize_region(event.pos())
-        if cursor == "bottom-right":
-            self.setCursor(Qt.CursorShape.SizeFDiagCursor)
-        elif cursor == "right":
-            self.setCursor(Qt.CursorShape.SizeHorCursor)
-        elif cursor == "bottom":
-            self.setCursor(Qt.CursorShape.SizeVerCursor)
-        else:
-            self.setCursor(Qt.CursorShape.ArrowCursor)
-
-        super().mouseMoveEvent(event)
-
-    def mouseReleaseEvent(self, event):
-        if self._resizing:
-            self._resizing = False
-            self._resize_direction = None
-            self._resize_start_pos = None
-            self._resize_start_geom = None
-            return
-
-        super().mouseReleaseEvent(event)
-
-    def _resize_region(self, pos: QPoint) -> Optional[str]:
-        width = self.width()
-        height = self.height()
-        x = pos.x()
-        y = pos.y()
-        margin = self._resize_margin
-
-        right = x >= width - margin
-        bottom = y >= height - margin
-
-        if right and bottom:
-            return "bottom-right"
-        if right:
-            return "right"
-        if bottom:
-            return "bottom"
-        return None
 
     def _on_send_clicked(self) -> None:
 

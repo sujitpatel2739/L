@@ -56,7 +56,7 @@
         "font_family": "Arial",
         "text_color": "#f2f0ae",
         "background_color": "#001183",
-        "background_alpha": 0.45,
+        "background_alpha": 1.0,
         "user_accent_color": "#0084ff",
         "assistant_accent_color": "#0088ff",
         "input_height_px": 52
