@@ -14,8 +14,9 @@ on Windows. focus_input() temporarily clears NOACTIVATE for that;
 ChatController is responsible for remembering what was focused before
 that, and restoring it (via deactivate()) on Escape/close.
 
-No rounded corners anywhere (flat rects only) and all backgrounds are
-alpha-blended for the "glass" look, per the product spec.
+Rounded, alpha-blended "glass" panel with modern chat-bubble styling:
+user messages right-aligned/accent-tinted, assistant messages
+left-aligned/neutral, both with soft rounded corners.
 """
 
 from __future__ import annotations
@@ -49,7 +50,8 @@ def _panel_qss(bg_hex: str, bg_alpha: float, text_hex: str) -> str:
     return f"""
         QWidget#panel {{
             background-color: rgba({r}, {g}, {b}, {int(bg_alpha * 255)});
-            border: none;
+            border: 1px solid rgba(255, 255, 255, 22);
+            border-radius: 16px;
         }}
         QLabel {{
             color: {text_hex};
@@ -57,23 +59,49 @@ def _panel_qss(bg_hex: str, bg_alpha: float, text_hex: str) -> str:
             border: none;
         }}
         QPushButton {{
-            background-color: rgba(255, 255, 255, 18);
+            background-color: rgba(255, 255, 255, 14);
             color: {text_hex};
             border: none;
-            padding: 4px 10px;
+            border-radius: 8px;
+            padding: 5px 12px;
+            font-weight: 600;
         }}
         QPushButton:hover {{
-            background-color: rgba(255, 255, 255, 40);
+            background-color: rgba(255, 255, 255, 32);
+        }}
+        QPushButton:pressed {{
+            background-color: rgba(255, 255, 255, 44);
         }}
         QPushButton:disabled {{
             color: rgba(255, 255, 255, 90);
             background-color: rgba(255, 255, 255, 8);
         }}
+        QPushButton#closeButton {{
+            background-color: transparent;
+            border-radius: 8px;
+            font-weight: 400;
+            padding: 0px;
+        }}
+        QPushButton#closeButton:hover {{
+            background-color: rgba(255, 80, 80, 55);
+        }}
+        QPushButton#sendButton {{
+            background-color: {text_hex};
+            color: rgba({r}, {g}, {b}, 255);
+        }}
+        QPushButton#sendButton:hover {{
+            background-color: {text_hex};
+            opacity: 0.9;
+        }}
         QLineEdit {{
-            background-color: rgba(255, 255, 255, 14);
-            border: none;
-            padding: 6px 8px;
+            background-color: rgba(255, 255, 255, 16);
+            border: 1.5px solid transparent;
+            border-radius: 18px;
+            padding: 8px 16px;
             color: {text_hex};
+        }}
+        QLineEdit:focus {{
+            border: 1.5px solid rgba(255, 255, 255, 90);
         }}
         QLineEdit:disabled {{
             color: rgba(255, 255, 255, 90);
@@ -84,9 +112,12 @@ def _panel_qss(bg_hex: str, bg_alpha: float, text_hex: str) -> str:
             margin: 0px;
         }}
         QScrollBar::handle:vertical {{
-            background: rgba(255, 255, 255, 60);
+            background: rgba(255, 255, 255, 55);
             min-height: 24px;
-            border-radius: 0px;
+            border-radius: 4px;
+        }}
+        QScrollBar::handle:vertical:hover {{
+            background: rgba(255, 255, 255, 80);
         }}
         QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{
             height: 0px;
@@ -112,6 +143,8 @@ class MessageBubble(QWidget):
 
     edit_clicked = Signal(str)  # message_id
 
+    MAX_WIDTH = 420
+
     def __init__(self, message_id: str, role: str, text: str, cfg, parent=None):
         super().__init__(parent)
 
@@ -121,25 +154,19 @@ class MessageBubble(QWidget):
 
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         self.setObjectName("bubble")
-
-        accent = cfg.user_accent_color if role == "user" else cfg.assistant_accent_color
-
-        self.setStyleSheet(f"""
-            QWidget#bubble {{
-                background-color: rgba(255, 255, 255, 12);
-                border-left: 3px solid {accent};
-            }}
-        """)
+        self.setMaximumWidth(self.MAX_WIDTH)
 
         outer = QVBoxLayout(self)
-        outer.setContentsMargins(10, 6, 10, 6)
-        outer.setSpacing(2)
+        outer.setContentsMargins(13, 9, 13, 10)
+        outer.setSpacing(3)
 
         header = QHBoxLayout()
         header.setContentsMargins(0, 0, 0, 0)
 
-        role_label = QLabel("You" if role == "user" else "Agent")
-        role_label.setStyleSheet(f"color: {accent}; font-weight: 600; font-size: 11px;")
+        accent = cfg.user_accent_color if role == "user" else cfg.assistant_accent_color
+
+        role_label = QLabel("You" if role == "user" else "Assistant")
+        role_label.setStyleSheet(f"color: {accent}; font-weight: 700; font-size: 10.5px;")
         header.addWidget(role_label)
         header.addStretch(1)
 
@@ -148,7 +175,12 @@ class MessageBubble(QWidget):
         if role == "user":
             self.edit_button = QPushButton("Edit")
             self.edit_button.setCursor(Qt.CursorShape.PointingHandCursor)
-            self.edit_button.setFixedHeight(20)
+            self.edit_button.setFixedHeight(18)
+            self.edit_button.setStyleSheet(
+                "QPushButton { background: transparent; padding: 0px 4px; "
+                "font-size: 10.5px; font-weight: 600; } "
+                "QPushButton:hover { text-decoration: underline; }"
+            )
             self.edit_button.clicked.connect(
                 lambda: self.edit_clicked.emit(self.message_id)
             )
@@ -161,11 +193,54 @@ class MessageBubble(QWidget):
         self.text_label.setTextInteractionFlags(
             Qt.TextInteractionFlag.TextSelectableByMouse
         )
+        outer.addWidget(self.text_label)
+
+        self._apply_bubble_style()
+
+    # --------------------------------------------------------
+
+    def _apply_bubble_style(self, editing: bool = False) -> None:
+        """
+        Filled, rounded, role-tinted bubble -- user messages lean on
+        their accent color, assistant messages stay neutral. This is
+        the single source of truth for bubble chrome; __init__,
+        apply_theme(), and set_editing() all funnel through it so the
+        three states (normal/themed/editing) never drift apart.
+        """
+
+        cfg = self.cfg
+        accent = cfg.user_accent_color if self.role == "user" else cfg.assistant_accent_color
+        ar, ag, ab = _hex_to_rgb(accent)
+
+        if self.role == "user":
+            bg = f"rgba({ar}, {ag}, {ab}, 48)"
+        else:
+            bg = "rgba(255, 255, 255, 14)"
+
+        border = f"2px dashed {accent}" if editing else "1px solid rgba(255, 255, 255, 20)"
+
+        # Slightly flattened corner on the side that "points" toward
+        # the conversation edge -- a subtle nod to classic chat-bubble
+        # tails without the complexity of an actual tail shape.
+        if self.role == "user":
+            radii = "border-top-left-radius: 14px; border-top-right-radius: 14px; " \
+                    "border-bottom-left-radius: 14px; border-bottom-right-radius: 4px;"
+        else:
+            radii = "border-top-left-radius: 14px; border-top-right-radius: 14px; " \
+                    "border-bottom-left-radius: 4px; border-bottom-right-radius: 14px;"
+
+        self.setStyleSheet(f"""
+            QWidget#bubble {{
+                background-color: {bg};
+                border: {border};
+                {radii}
+            }}
+        """)
+
         self.text_label.setStyleSheet(
             f"color: {cfg.text_color}; font-family: '{cfg.font_family}'; "
-            f"font-size: {cfg.font_size}px;"
+            f"font-size: {cfg.font_size}px; background: transparent; border: none;"
         )
-        outer.addWidget(self.text_label)
 
     # --------------------------------------------------------
 
@@ -184,20 +259,7 @@ class MessageBubble(QWidget):
         """
 
         self.cfg = cfg
-
-        accent = cfg.user_accent_color if self.role == "user" else cfg.assistant_accent_color
-
-        self.setStyleSheet(f"""
-            QWidget#bubble {{
-                background-color: rgba(255, 255, 255, 12);
-                border-left: 3px solid {accent};
-            }}
-        """)
-
-        self.text_label.setStyleSheet(
-            f"color: {cfg.text_color}; font-family: '{cfg.font_family}'; "
-            f"font-size: {cfg.font_size}px;"
-        )
+        self._apply_bubble_style()
 
     def set_edit_enabled(self, enabled: bool) -> None:
         if self.edit_button is not None:
@@ -209,15 +271,32 @@ class MessageBubble(QWidget):
         input bar for editing.
         """
 
-        accent = self.cfg.user_accent_color if self.role == "user" else self.cfg.assistant_accent_color
-        border = "2px dashed " + accent if editing else "3px solid " + accent
+        self._apply_bubble_style(editing=editing)
 
-        self.setStyleSheet(f"""
-            QWidget#bubble {{
-                background-color: rgba(255, 255, 255, {18 if editing else 12});
-                border-left: {border};
-            }}
-        """)
+
+# ============================================================
+# Message row: right-aligns user bubbles, left-aligns assistant
+# bubbles -- the standard modern chat layout (iMessage/Slack-style)
+# instead of every bubble spanning the full panel width.
+# ============================================================
+
+class MessageRow(QWidget):
+
+    def __init__(self, bubble: MessageBubble, role: str, parent=None):
+        super().__init__(parent)
+
+        self.bubble = bubble
+
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
+
+        if role == "user":
+            layout.addStretch(1)
+            layout.addWidget(bubble)
+        else:
+            layout.addWidget(bubble)
+            layout.addStretch(1)
 
 
 # ============================================================
@@ -237,6 +316,7 @@ class ChatOverlayWindow(QWidget):
 
         self.cfg = settings.chat
         self._bubbles: Dict[str, MessageBubble] = {}
+        self._rows: Dict[str, MessageRow] = {}
         self._order: List[str] = []
         self._near_bottom = True
         self._drag_start_pos: Optional[QPoint] = None
@@ -271,15 +351,19 @@ class ChatOverlayWindow(QWidget):
         # ---- header bar ----
         header = QWidget()
         header_layout = QHBoxLayout(header)
-        header_layout.setContentsMargins(10, 6, 10, 6)
+        header_layout.setContentsMargins(16, 12, 10, 10)
 
         title = QLabel("Assistant")
-        title.setStyleSheet(f"color: {self.cfg.text_color}; font-weight: 600;")
+        title.setStyleSheet(
+            f"color: {self.cfg.text_color}; font-weight: 700; font-size: 13.5px; "
+            f"letter-spacing: 0.2px;"
+        )
         header_layout.addWidget(title)
         header_layout.addStretch(1)
 
         close_btn = QPushButton("\u2715")
-        close_btn.setFixedSize(24, 24)
+        close_btn.setObjectName("closeButton")
+        close_btn.setFixedSize(26, 26)
         close_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         close_btn.clicked.connect(self.close_requested.emit)
         header_layout.addWidget(close_btn)
@@ -312,14 +396,14 @@ class ChatOverlayWindow(QWidget):
         # ---- input row, flat-attached to the bottom edge ----
         divider = QFrame()
         divider.setFixedHeight(1)
-        divider.setStyleSheet("background-color: rgba(255, 255, 255, 28); border: none;")
+        divider.setStyleSheet("background-color: rgba(255, 255, 255, 18); border: none;")
         root.addWidget(divider)
 
         input_row = QWidget()
         input_row.setFixedHeight(self.cfg.input_height_px)
         input_layout = QHBoxLayout(input_row)
-        input_layout.setContentsMargins(8, 6, 8, 6)
-        input_layout.setSpacing(6)
+        input_layout.setContentsMargins(12, 8, 12, 12)
+        input_layout.setSpacing(8)
 
         self.line_edit = QLineEdit()
         self.line_edit.setPlaceholderText("Message the assistant...")
@@ -336,6 +420,7 @@ class ChatOverlayWindow(QWidget):
         self.input_row.installEventFilter(self)
 
         self.send_button = QPushButton("Send")
+        self.send_button.setObjectName("sendButton")
         self.send_button.setCursor(Qt.CursorShape.PointingHandCursor)
         self.send_button.clicked.connect(self._on_send_clicked)
         input_layout.addWidget(self.send_button)
@@ -477,11 +562,14 @@ class ChatOverlayWindow(QWidget):
         bubble = MessageBubble(message_id, role, text, self.cfg)
         bubble.edit_clicked.connect(self.edit_requested.emit)
 
+        row = MessageRow(bubble, role)
+
         # insert before the trailing stretch
         insert_index = self.messages_layout.count() - 1
-        self.messages_layout.insertWidget(insert_index, bubble)
+        self.messages_layout.insertWidget(insert_index, row)
 
         self._bubbles[message_id] = bubble
+        self._rows[message_id] = row
         self._order.append(message_id)
 
         if was_near_bottom or role == "user":
@@ -516,20 +604,22 @@ class ChatOverlayWindow(QWidget):
         to_remove = self._order[idx + 1:]
 
         for mid in to_remove:
-            bubble = self._bubbles.pop(mid, None)
-            if bubble is not None:
-                self.messages_layout.removeWidget(bubble)
-                bubble.deleteLater()
+            self._bubbles.pop(mid, None)
+            row = self._rows.pop(mid, None)
+            if row is not None:
+                self.messages_layout.removeWidget(row)
+                row.deleteLater()
 
         self._order = self._order[: idx + 1]
 
     def clear_messages(self) -> None:
 
-        for bubble in self._bubbles.values():
-            self.messages_layout.removeWidget(bubble)
-            bubble.deleteLater()
+        for row in self._rows.values():
+            self.messages_layout.removeWidget(row)
+            row.deleteLater()
 
         self._bubbles.clear()
+        self._rows.clear()
         self._order.clear()
 
     def set_editing(self, message_id: Optional[str]) -> None:

@@ -107,85 +107,259 @@ def qkeysequence_to_hotkey(seq: QKeySequence) -> str:
 # Theming
 # ============================================================
 
+def _hex_to_rgb(hex_color: str):
+
+    h = hex_color.lstrip("#")
+
+    return tuple(int(h[i:i + 2], 16) for i in (0, 2, 4))
+
+
 def build_stylesheet(theme: str, accent: str) -> str:
 
     if theme == "light":
-        bg, bg2, fg, border = "#F5F5F7", "#FFFFFF", "#1A1A1A", "#D8D8DC"
+        bg, bg2, bg3, fg, fg_muted, border = (
+            "#F6F6F8", "#FFFFFF", "#EFEFF3", "#18181B", "#6B6B76", "#E2E2E8",
+        )
     else:
-        bg, bg2, fg, border = "#1B1B1F", "#232328", "#F2F2F2", "#35353D"
+        bg, bg2, bg3, fg, fg_muted, border = (
+            "#18181B", "#212126", "#2A2A31", "#F4F4F6", "#9A9AA6", "#33333C",
+        )
+
+    accent_r, accent_g, accent_b = _hex_to_rgb(accent)
 
     return f"""
         QMainWindow, QWidget {{
             background-color: {bg};
             color: {fg};
+            font-family: 'Segoe UI', sans-serif;
         }}
+
+        /* ---- Nav rail ---- */
         QListWidget {{
             background-color: {bg2};
             border: none;
+            border-right: 1px solid {border};
             outline: none;
+            padding: 8px 0px;
         }}
         QListWidget::item {{
-            padding: 12px 18px;
+            padding: 11px 20px;
+            margin: 1px 8px;
             border: none;
+            border-radius: 8px;
             background: transparent;
-            font-family: 'Segoe UI Semibold', 'Segoe UI';
-            font-size: 14px;
-            font-weight: 500;
+            color: {fg_muted};
+            font-size: 13.5px;
+            font-weight: 600;
+            letter-spacing: 0.2px;
         }}
         QListWidget::item:hover {{
-            color: {accent};
+            color: {fg};
+            background-color: {bg3};
         }}
         QListWidget::item:selected {{
             color: {accent};
-            background: transparent;
+            background-color: rgba({accent_r}, {accent_g}, {accent_b}, 28);
             font-weight: 700;
         }}
+
+        /* ---- Group boxes ---- */
         QGroupBox {{
+            background-color: {bg2};
             border: 1px solid {border};
-            margin-top: 12px;
-            padding-top: 12px;
+            border-radius: 12px;
+            margin-top: 14px;
+            padding: 16px 4px 4px 4px;
             font-weight: 600;
+            font-size: 13px;
         }}
         QGroupBox::title {{
             subcontrol-origin: margin;
-            left: 8px;
+            left: 12px;
+            top: 2px;
+            padding: 0px 6px;
+            color: {fg_muted};
         }}
+
+        /* ---- Buttons ---- */
         QPushButton {{
-            background-color: {bg2};
-            border: 1px solid {border};
-            padding: 6px 14px;
+            background-color: {bg3};
+            border: 1px solid transparent;
+            border-radius: 9px;
+            padding: 7px 16px;
+            font-weight: 600;
+            color: {fg};
         }}
         QPushButton:hover {{
             background-color: {accent};
             color: white;
-            border-color: {accent};
+        }}
+        QPushButton:pressed {{
+            background-color: {accent};
+            color: white;
+            padding-top: 8px;
+            padding-bottom: 6px;
         }}
         QPushButton:disabled {{
-            color: gray;
+            color: {fg_muted};
+            background-color: {bg3};
         }}
-        QLineEdit, QComboBox, QSpinBox, QDoubleSpinBox, QKeySequenceEdit, QTextEdit {{
+
+        /* ---- Text inputs ---- */
+        QLineEdit, QComboBox, QKeySequenceEdit, QTextEdit {{
+            background-color: {bg3};
+            border: 1.5px solid transparent;
+            border-radius: 9px;
+            padding: 7px 10px;
+            selection-background-color: {accent};
+        }}
+        QLineEdit:focus, QComboBox:focus, QKeySequenceEdit:focus, QTextEdit:focus {{
+            border: 1.5px solid {accent};
+        }}
+        QLineEdit:disabled, QTextEdit:disabled {{
+            color: {fg_muted};
+        }}
+        QComboBox::drop-down {{
+            border: none;
+            width: 24px;
+        }}
+        QComboBox QAbstractItemView {{
             background-color: {bg2};
             border: 1px solid {border};
-            padding: 4px 6px;
+            border-radius: 8px;
+            outline: none;
+            selection-background-color: rgba({accent_r}, {accent_g}, {accent_b}, 40);
         }}
+
+        /* ---- Spin boxes: explicit up/down subcontrols so the
+               arrows stay visible AND clickable -- customizing a
+               QAbstractSpinBox via QSS at all silently shrinks/breaks
+               the default arrow buttons unless these are set. ---- */
+        QSpinBox, QDoubleSpinBox {{
+            background-color: {bg3};
+            border: 1.5px solid transparent;
+            border-radius: 9px;
+            padding: 7px 4px 7px 10px;
+        }}
+        QSpinBox:focus, QDoubleSpinBox:focus {{
+            border: 1.5px solid {accent};
+        }}
+        QSpinBox::up-button, QDoubleSpinBox::up-button {{
+            subcontrol-origin: border;
+            subcontrol-position: top right;
+            width: 20px;
+            height: 14px;
+            margin: 3px 4px 0px 0px;
+            border-radius: 4px;
+            background-color: transparent;
+        }}
+        QSpinBox::down-button, QDoubleSpinBox::down-button {{
+            subcontrol-origin: border;
+            subcontrol-position: bottom right;
+            width: 20px;
+            height: 14px;
+            margin: 0px 4px 3px 0px;
+            border-radius: 4px;
+            background-color: transparent;
+        }}
+        QSpinBox::up-button:hover, QDoubleSpinBox::up-button:hover,
+        QSpinBox::down-button:hover, QDoubleSpinBox::down-button:hover {{
+            background-color: {bg2};
+        }}
+        QSpinBox::up-button:pressed, QDoubleSpinBox::up-button:pressed,
+        QSpinBox::down-button:pressed, QDoubleSpinBox::down-button:pressed {{
+            background-color: {accent};
+        }}
+        QSpinBox::up-arrow, QDoubleSpinBox::up-arrow {{
+            image: none;
+            border-left: 4px solid transparent;
+            border-right: 4px solid transparent;
+            border-bottom: 5px solid {fg_muted};
+            width: 0px;
+            height: 0px;
+        }}
+        QSpinBox::down-arrow, QDoubleSpinBox::down-arrow {{
+            image: none;
+            border-left: 4px solid transparent;
+            border-right: 4px solid transparent;
+            border-top: 5px solid {fg_muted};
+            width: 0px;
+            height: 0px;
+        }}
+        QSpinBox::up-button:pressed ~ QSpinBox::up-arrow {{
+            border-bottom-color: white;
+        }}
+
+        /* ---- Tables ---- */
         QTableWidget {{
             background-color: {bg2};
             border: 1px solid {border};
+            border-radius: 12px;
             gridline-color: {border};
         }}
         QHeaderView::section {{
-            background-color: {bg};
+            background-color: {bg2};
             border: none;
             border-bottom: 1px solid {border};
-            padding: 6px;
+            padding: 8px;
+            font-weight: 600;
+            color: {fg_muted};
         }}
+        QTableWidget::item {{
+            padding: 4px;
+        }}
+
+        /* ---- Progress bars ---- */
         QProgressBar {{
-            border: 1px solid {border};
-            background-color: {bg2};
+            border: none;
+            border-radius: 6px;
+            background-color: {bg3};
             text-align: center;
+            min-height: 12px;
+            max-height: 12px;
         }}
         QProgressBar::chunk {{
             background-color: {accent};
+            border-radius: 6px;
+        }}
+
+        /* ---- Misc ---- */
+        QScrollBar:vertical {{
+            background: transparent;
+            width: 10px;
+            margin: 0px;
+        }}
+        QScrollBar::handle:vertical {{
+            background: {border};
+            border-radius: 5px;
+            min-height: 24px;
+        }}
+        QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{
+            height: 0px;
+        }}
+        QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {{
+            background: transparent;
+        }}
+        QCheckBox {{
+            spacing: 8px;
+        }}
+        QCheckBox::indicator {{
+            width: 16px;
+            height: 16px;
+            border-radius: 5px;
+            border: 1.5px solid {border};
+            background-color: {bg3};
+        }}
+        QCheckBox::indicator:checked {{
+            background-color: {accent};
+            border-color: {accent};
+        }}
+        QToolTip {{
+            background-color: {bg2};
+            color: {fg};
+            border: 1px solid {border};
+            border-radius: 6px;
+            padding: 4px 8px;
         }}
     """
 
@@ -786,23 +960,6 @@ class AppearanceTab(QWidget):
 
         root.addWidget(chat_group)
 
-        overlay_group = QGroupBox("Capture-answer overlay")
-        overlay_form = QFormLayout(overlay_group)
-
-        self.overlay_opacity = QDoubleSpinBox()
-        self.overlay_opacity.setRange(0.1, 1.0)
-        self.overlay_opacity.setSingleStep(0.05)
-        self.overlay_opacity.setValue(settings.overlay.opacity)
-        overlay_form.addRow("Window opacity", self.overlay_opacity)
-
-        self.overlay_width = QDoubleSpinBox()
-        self.overlay_width.setRange(0.1, 1.0)
-        self.overlay_width.setSingleStep(0.05)
-        self.overlay_width.setValue(settings.overlay.width_percent)
-        overlay_form.addRow("Width (% of screen)", self.overlay_width)
-
-        root.addWidget(overlay_group)
-
         root.addStretch(1)
 
         apply_row = QHBoxLayout()
@@ -840,9 +997,6 @@ class AppearanceTab(QWidget):
         s.chat.background_alpha = self.chat_bg_alpha.value()
         s.chat.user_accent_color = self.user_accent.color_hex
         s.chat.assistant_accent_color = self.assistant_accent.color_hex
-
-        s.overlay.opacity = self.overlay_opacity.value()
-        s.overlay.width_percent = self.overlay_width.value()
 
         try:
             config_module.validate(s)
@@ -1235,7 +1389,9 @@ class LocalModelsTab(QWidget):
         if entry is None:
             return
 
-        QMetaObject.invokeMethod(entry["worker"], "cancel", Qt.ConnectionType.QueuedConnection)
+        # Direct call, NOT QMetaObject.invokeMethod -- see
+        # ModelDownloadWorker.request_cancel()'s docstring for why.
+        entry["worker"].request_cancel()
 
     def _on_progress(self, key: str, stage: str, fraction: float) -> None:
 
@@ -1350,10 +1506,16 @@ class LocalModelsTab(QWidget):
 
             entry = self._active_downloads[key]
 
-            QMetaObject.invokeMethod(entry["worker"], "cancel", Qt.ConnectionType.QueuedConnection)
+            entry["worker"].request_cancel()
 
             entry["thread"].quit()
-            entry["thread"].wait()
+
+            # Bounded wait: the worker thread only notices the cancel
+            # flag between network chunks, so give it a moment, but
+            # don't let a stuck connection hang app shutdown forever.
+            if not entry["thread"].wait(5000):
+                entry["thread"].terminate()
+                entry["thread"].wait()
 
         self._active_downloads.clear()
 

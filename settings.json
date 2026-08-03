@@ -44,8 +44,8 @@
         "padding": 20,
         "text_color": "#FFFFFF",
         "background_color": "#000000",
-        "background_alpha": 0.35,
-        "width_percent": 0.55,
+        "background_alpha": 1,
+        "width_percent": 1,
         "position": "center"
     },
     "chat": {
@@ -54,15 +54,15 @@
         "margin_px": 24,
         "font_size": 14,
         "font_family": "Arial",
-        "text_color": "#e9f23f",
+        "text_color": "#f2f0ae",
         "background_color": "#001183",
-        "background_alpha": 1.0,
-        "user_accent_color": "#00ff11",
+        "background_alpha": 1,
+        "user_accent_color": "#0084ff",
         "assistant_accent_color": "#0088ff",
-        "input_height_px": 44
+        "input_height_px": 52
     },
     "app": {
-        "theme": "dark",
+        "theme": "light",
         "accent_color": "#ff0062",
         "start_with_windows": false,
         "check_for_updates": false

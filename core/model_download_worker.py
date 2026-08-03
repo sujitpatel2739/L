@@ -83,12 +83,16 @@ class ModelDownloadWorker(QObject):
 
             self.error.emit(key, f"{type(exc).__name__}: {exc}")
 
-    @Slot()
-    def cancel(self) -> None:
+    def request_cancel(self) -> None:
         """
-        Best-effort: checked between chunks inside ModelManager's
-        download loop, so this stops promptly without needing to kill
-        the thread.
+        Thread-safe -- call this directly from the UI thread, NOT via
+        QMetaObject.invokeMethod()/a Qt @Slot(). While download() is
+        running, this worker's own thread is blocked inside that
+        synchronous call and never returns to its Qt event loop, so a
+        queued cross-thread call to a @Slot() on this object would sit
+        undelivered until the download finishes on its own -- too late
+        to matter. threading.Event.set() has no such problem: it's
+        safe to call from any thread without an event loop involved.
         """
 
         self._cancel_event.set()
